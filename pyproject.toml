@@ -1,0 +1,23 @@
+[project]
+name = "async3status"
+version = "0.1.0"
+description = "Async event-driven i3/sway status bar framework"
+authors = [
+    { name = "Frank Hermann", email = "frank.hermann@posteo.de" }
+]
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.8"
+dependencies = [
+    "PyYAML>=6.0",
+    "pulsectl>=23.11.1"
+    "asyncinotify"
+]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+
