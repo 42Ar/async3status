@@ -3,7 +3,8 @@
 It allows you to write **extensible Python modules** that can update the bar in response to:
 - timers (periodic updates)  
 - sockets / file descriptors  
-- IPC events  
+- IPC events
+
 It is a lightweight replacement for `py3status` with **full async support**.
 
 ## Features
