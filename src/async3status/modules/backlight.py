@@ -1,3 +1,4 @@
+import asyncio
 import os
 from base import Module
 from asyncinotify import Inotify, Mask
@@ -13,6 +14,7 @@ class Backlight(Module):
         cfg = self.config
         icon = cfg.get("icon", "💡")
         path = cfg.get("path", "/sys/class/backlight/intel_backlight")
+        retry_interval = cfg.get("retry_interval", 5)
 
         brightness_file = os.path.join(path, "brightness")
         max_file = os.path.join(path, "max_brightness")
@@ -32,13 +34,16 @@ class Backlight(Module):
             percent = int(cur / maxv * 100)
             return f"{icon} {percent}%"
 
-        # Initial output
-        self.update(get_text())
-
-        # Watch brightness file
-        inotify = Inotify()
-        inotify.add_watch(brightness_file, Mask.MODIFY)
-        async for event in inotify:
-            if event.mask & Mask.MODIFY:
+        # Watch brightness file - retry if it doesn't exist
+        while True:
+            try:
+                inotify = Inotify()
+                inotify.add_watch(brightness_file, Mask.MODIFY)
                 self.update(get_text())
+                async for event in inotify:
+                    if event.mask & Mask.MODIFY:
+                        self.update(get_text())
+            except FileNotFoundError:
+                self.update(f"{icon} no backlight")
+                await asyncio.sleep(retry_interval)
 

@@ -75,13 +75,8 @@ class TestBacklight:
                 pass
 
     @pytest.mark.asyncio
-    async def test_missing_brightness_file(self, mock_bar, tmp_path):
-        """Test handling of missing brightness file.
-        
-        Note: Currently the module crashes if the brightness file doesn't exist
-        because inotify.add_watch fails. This test documents that behavior.
-        A future improvement would be to handle this gracefully.
-        """
+    async def test_missing_brightness_file_shows_error(self, mock_bar, tmp_path):
+        """Test that missing brightness file shows error text in status bar."""
         bl_path = tmp_path / "missing_backlight"
         bl_path.mkdir()
         # Only create max_brightness, not brightness
@@ -90,18 +85,70 @@ class TestBacklight:
         config = {"type": "backlight", "path": str(bl_path), "icon": "BL"}
         module = Backlight(mock_bar, config)
 
-        # Module shows "?" initially but then crashes when trying to watch missing file
         task = asyncio.create_task(module.run())
         try:
+            # Wait for error message to appear
             await asyncio.wait_for(mock_bar.update_event.wait(), timeout=1.0)
-            # Initial update shows "?" since brightness file is missing
-            assert "?" in module.block.get("full_text", "?")
+            # Should show "no backlight" error
+            assert "no backlight" in module.block["full_text"]
         finally:
             task.cancel()
             try:
                 await task
-            except (asyncio.CancelledError, FileNotFoundError):
-                pass  # FileNotFoundError expected - inotify can't watch missing file
+            except asyncio.CancelledError:
+                pass
+
+    @pytest.mark.asyncio
+    async def test_missing_backlight_directory_shows_error(self, mock_bar, tmp_path):
+        """Test that completely missing backlight path shows error text."""
+        bl_path = tmp_path / "nonexistent_backlight"
+        # Don't create the directory at all
+
+        config = {"type": "backlight", "path": str(bl_path), "icon": "BL"}
+        module = Backlight(mock_bar, config)
+
+        task = asyncio.create_task(module.run())
+        try:
+            await asyncio.wait_for(mock_bar.update_event.wait(), timeout=1.0)
+            # Should show "no backlight" error
+            assert "no backlight" in module.block["full_text"]
+        finally:
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+
+    @pytest.mark.asyncio
+    async def test_brightness_file_appears_later(self, mock_bar, tmp_path):
+        """Test that module recovers when brightness file appears after startup."""
+        bl_path = tmp_path / "delayed_backlight"
+        bl_path.mkdir()
+        (bl_path / "max_brightness").write_text("1000")
+        # brightness file doesn't exist yet
+
+        config = {"type": "backlight", "path": str(bl_path), "icon": "BL", "retry_interval": 0.1}
+        module = Backlight(mock_bar, config)
+
+        task = asyncio.create_task(module.run())
+        try:
+            # Wait for initial error message
+            await asyncio.wait_for(mock_bar.update_event.wait(), timeout=1.0)
+            assert "no backlight" in module.block["full_text"]
+            mock_bar.update_event.clear()
+
+            # Now create the brightness file
+            (bl_path / "brightness").write_text("500")
+
+            # Module should recover and show brightness after retry
+            await asyncio.wait_for(mock_bar.update_event.wait(), timeout=1.0)
+            assert "50%" in module.block["full_text"]
+        finally:
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
 
     @pytest.mark.asyncio
     async def test_zero_max_brightness(self, mock_bar, tmp_path):
