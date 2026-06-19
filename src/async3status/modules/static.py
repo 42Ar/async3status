@@ -1,4 +1,4 @@
-from base import Module
+from async3status.base import Module
 
 
 class Static(Module):

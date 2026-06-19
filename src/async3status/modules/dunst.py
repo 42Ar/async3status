@@ -1,5 +1,6 @@
 import asyncio
-from base import Module
+
+from async3status.base import Module
 
 
 class Dunst(Module):

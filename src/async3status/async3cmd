@@ -1,4 +1,0 @@
-#!/usr/bin/env bash
-
-echo "$@" | socat - UNIX-CONNECT:/run/user/1000/async3status.sock
-

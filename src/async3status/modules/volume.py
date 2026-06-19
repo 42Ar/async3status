@@ -1,7 +1,9 @@
 import asyncio
 import threading
+
 import pulsectl
-from base import Module
+
+from async3status.base import Module
 
 class Volume(Module):
     """

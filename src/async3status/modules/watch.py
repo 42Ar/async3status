@@ -1,9 +1,11 @@
 import asyncio
-import asyncinotify
 import re
-from base import Module
 from datetime import datetime
 from pathlib import Path
+
+import asyncinotify
+
+from async3status.base import Module
 
 
 class Watch(Module):

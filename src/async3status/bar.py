@@ -1,8 +1,10 @@
 import asyncio
-import os
 import json
+import os
+
 import yaml
-from loader import load_module
+
+from async3status.loader import load_module
 
 
 class Bar:
@@ -19,7 +21,7 @@ class Bar:
         for mconf in cfg["modules"]:
             module_class = load_module(mconf["type"])
             if module_class is None:
-                from modules.static import Static
+                from async3status.modules.static import Static
                 module = Static(self, {"type": "static", "text": f"Unable to find module '{mconf['type']}'"})
             else:
                 module = module_class(self, mconf)
@@ -72,7 +74,7 @@ class Bar:
             from dbus_fast.aio import MessageBus
             from dbus_fast import BusType
         except ImportError:
-            from modules.static import Static
+            from async3status.modules.static import Static
             module = Static(self, {"type": "static", "text": "wake: no dbus-fast", "color": "yellow"})
             self.modules.append(module)
             await module.run()
@@ -96,7 +98,7 @@ class Bar:
             manager.on_prepare_for_sleep(on_prepare_for_sleep)
             await asyncio.Future()  # Run forever
         except Exception as e:
-            from modules.static import Static
+            from async3status.modules.static import Static
             module = Static(self, {"type": "static", "text": f"wake: {type(e).__name__}", "color": "red"})
             self.modules.append(module)
             await module.run()

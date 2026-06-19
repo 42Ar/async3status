@@ -1,7 +1,8 @@
 import asyncio
 import os
-from base import Module
 import time
+
+from async3status.base import Module
 
 
 class Battery(Module):

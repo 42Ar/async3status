@@ -5,7 +5,7 @@ Tests for the backlight inotify-based module.
 import asyncio
 import pytest
 
-from modules.backlight import Backlight
+from async3status.modules.backlight import Backlight
 
 
 class TestBacklight:

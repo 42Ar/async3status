@@ -6,8 +6,8 @@ import asyncio
 import pytest
 from unittest.mock import patch, AsyncMock
 
-from modules.clock import Clock
-from bar import Bar
+from async3status.bar import Bar
+from async3status.modules.clock import Clock
 
 
 class TestClockOnWake:

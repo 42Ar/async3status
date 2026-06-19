@@ -1,7 +1,9 @@
 import asyncio
 import os
-from base import Module
+
 from asyncinotify import Inotify, Mask
+
+from async3status.base import Module
 
 
 class Backlight(Module):

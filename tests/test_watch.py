@@ -6,7 +6,7 @@ import asyncio
 import pytest
 from datetime import datetime, timedelta
 
-from modules.watch import Watch
+from async3status.modules.watch import Watch
 
 
 class TestWatch:

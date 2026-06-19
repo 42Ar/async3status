@@ -1,7 +1,8 @@
 import asyncio
-import time
 import re
-from base import Module
+import time
+
+from async3status.base import Module
 
 
 class Clock(Module):
