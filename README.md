@@ -241,6 +241,54 @@ pytest
 cd src/async3status && python main.py
 ```
 
+## requirements.txt
+
+For pip-based installations without pyproject.toml:
+
+```
+PyYAML>=6.0
+pulsectl>=23.11.1
+asyncinotify
+```
+
+Optional:
+```
+dbus-fast  # for wake detection
+```
+
+## pyproject.toml
+
+```toml
+[project]
+name = "async3status"
+version = "0.1.0"
+description = "Async event-driven i3/sway status bar framework"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "PyYAML>=6.0",
+    "pulsectl>=23.11.1",
+    "asyncinotify"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21",
+]
+wake = [
+    "dbus-fast",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+```
+
 ## License
 
 See [LICENSE](LICENSE) for details.
