@@ -35,7 +35,7 @@ class TestClockOnWake:
 
         assert clock_module.block["full_text"] is not None
         assert ":" in clock_module.block["full_text"]  # Time format contains colons
-        mock_bar.update_event.is_set()
+        assert mock_bar.update_event.is_set()
 
 
 class TestWakeListenerImportError:

@@ -54,7 +54,7 @@ class Disk(Module):
         self.unit = self.config.get("unit", "GB")
         self.refresh = self.config.get("refresh", 60)
         self.format = self.config.get("format", "💾 {free:.0f}{unit}")
-        self.factor = self.UNITS.get(self.unit)
+        self.factor = self.UNITS.get(self.unit, 1)
 
     def get_stats(self):
         try:

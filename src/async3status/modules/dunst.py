@@ -22,19 +22,22 @@ class Dunst(Module):
     """
 
     async def refresh(self):
-        proc = await asyncio.create_subprocess_exec(
-            "dunstctl", "is-paused",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.DEVNULL
-        )
-        out, _ = await proc.communicate()
-        out = out.decode().strip()
-        if out == "true":
-            self.update(self.config.get("paused_icon", "🔕"))
-        elif out == "false":
-            self.update(self.config.get("active_icon", "🔔"))
-        else:
-            self.update("DUNST ERROR")
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                "dunstctl", "is-paused",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.DEVNULL
+            )
+            out, _ = await proc.communicate()
+            out = out.decode().strip()
+            if out == "true":
+                self.update(self.config.get("paused_icon", "🔕"))
+            elif out == "false":
+                self.update(self.config.get("active_icon", "🔔"))
+            else:
+                self.update("DUNST ERROR")
+        except FileNotFoundError:
+            self.update("no dunstctl")
 
     async def run(self):
         await self.refresh()
