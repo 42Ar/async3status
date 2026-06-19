@@ -43,6 +43,13 @@ class Module:
         """
         pass
 
+    async def on_wake(self):
+        """
+        Called when the system wakes from suspend.
+        Override in subclasses to refresh state after wake.
+        """
+        pass
+
     async def run(self):
         """
         Run the module's main loop.

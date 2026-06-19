@@ -32,22 +32,26 @@ class Clock(Module):
         "B": 86400,      # month full
     }
 
-    async def run(self):
-        fmt = self.config.get("format", "%H:%M:%S")
-
+    def __post_init__(self):
+        self.fmt = self.config.get("format", "%H:%M:%S")
         # Extract all % codes from the format string using regex
-        codes = re.findall(r"%([a-zA-Z])", fmt)
+        codes = re.findall(r"%([a-zA-Z])", self.fmt)
         if codes:
-            interval = min(self.INTERVALS.get(code, 86400) for code in codes)
+            self.interval = min(self.INTERVALS.get(code, 86400) for code in codes)
         else:
-            interval = 86400  # default daily if no recognizable code
+            self.interval = 86400  # default daily if no recognizable code
 
+    async def on_wake(self):
+        """Refresh clock immediately after waking from suspend."""
+        self.update(time.strftime(self.fmt))
+
+    async def run(self):
         while True:
-            self.update(time.strftime(fmt))
+            self.update(time.strftime(self.fmt))
 
             # Compute exact next tick
             now = time.time()
-            next_tick = ((now // interval) + 1) * interval
+            next_tick = ((now // self.interval) + 1) * self.interval
             wait_time = max(0, next_tick - now)
             await asyncio.sleep(wait_time)
 
