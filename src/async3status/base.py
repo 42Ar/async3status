@@ -5,7 +5,6 @@ Defines the base class for all modules in the async3status framework.
 Each module should inherit from Module and implement the async run() method.
 """
 
-import asyncio
 from dataclasses import dataclass, field
 from bar import Bar
 

@@ -49,10 +49,11 @@ class Watch(Module):
         watcher = asyncinotify.Inotify()
         if self.path.is_file():
             watcher.add_watch(self.path, asyncinotify.Mask.MODIFY)
-        watcher.add_watch(
-            self.path.parent,
-            asyncinotify.Mask.CREATE | asyncinotify.Mask.MOVED_TO
-        )
+        if self.path.parent.is_dir():
+            watcher.add_watch(
+                self.path.parent,
+                asyncinotify.Mask.CREATE | asyncinotify.Mask.MOVED_TO
+            )
         async for event in watcher:
             if event.mask & asyncinotify.Mask.MODIFY:
                 self.do_update()  # file modified

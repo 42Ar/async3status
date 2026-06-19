@@ -21,10 +21,8 @@ class Bar:
             if module_class is None:
                 from modules.static import Static
                 module = Static(self, {"text": f"Unable to find module '{mconf['type']}'"})
-                name = mconf["type"]
             else:
                 module = module_class(self, mconf)
-                name = mconf.get("name", mconf["type"])
             self.modules.append(module)
 
     def notify_update(self):
