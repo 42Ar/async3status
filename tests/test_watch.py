@@ -4,13 +4,7 @@ Tests for the watch inotify-based module.
 
 import asyncio
 import pytest
-import sys
 from datetime import datetime, timedelta
-from pathlib import Path
-from unittest.mock import patch, MagicMock
-
-# Add src to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent / "src" / "async3status"))
 
 from modules.watch import Watch
 
@@ -28,26 +22,16 @@ class TestWatch:
         }
         return Watch(mock_bar, config)
 
-    @pytest.mark.asyncio
-    async def test_initial_content_display(self, watch_module, mock_bar):
+    async def test_initial_content_display(self, watch_module, mock_bar, run_module):
         """Test that initial file content is displayed."""
-        task = asyncio.create_task(watch_module.run())
-        try:
+        async with run_module(watch_module):
             await asyncio.wait_for(mock_bar.update_event.wait(), timeout=1.0)
-        finally:
-            task.cancel()
-            try:
-                await task
-            except asyncio.CancelledError:
-                pass
 
         assert watch_module.block["full_text"] == "initial content"
 
-    @pytest.mark.asyncio
-    async def test_file_modification_triggers_update(self, watch_module, mock_bar, tmp_file):
+    async def test_file_modification_triggers_update(self, watch_module, mock_bar, tmp_file, run_module):
         """Test that modifying the file triggers an update."""
-        task = asyncio.create_task(watch_module.run())
-        try:
+        async with run_module(watch_module):
             # Wait for initial update
             await asyncio.wait_for(mock_bar.update_event.wait(), timeout=1.0)
             mock_bar.update_event.clear()
@@ -63,15 +47,8 @@ class TestWatch:
             await asyncio.wait_for(mock_bar.update_event.wait(), timeout=1.0)
 
             assert watch_module.block["full_text"] == "modified content"
-        finally:
-            task.cancel()
-            try:
-                await task
-            except asyncio.CancelledError:
-                pass
 
-    @pytest.mark.asyncio
-    async def test_file_creation_triggers_update(self, mock_bar, tmp_path):
+    async def test_file_creation_triggers_update(self, mock_bar, tmp_path, run_module):
         """Test that creating a watched file triggers an update."""
         watch_file = tmp_path / "new_file.txt"
         config = {
@@ -80,8 +57,7 @@ class TestWatch:
         }
         module = Watch(mock_bar, config)
 
-        task = asyncio.create_task(module.run())
-        try:
+        async with run_module(module):
             # Initial update should show error (file doesn't exist)
             await asyncio.wait_for(mock_bar.update_event.wait(), timeout=1.0)
             assert "Failed to read" in module.block["full_text"]
@@ -97,15 +73,8 @@ class TestWatch:
             await asyncio.wait_for(mock_bar.update_event.wait(), timeout=1.0)
 
             assert module.block["full_text"] == "new file content"
-        finally:
-            task.cancel()
-            try:
-                await task
-            except asyncio.CancelledError:
-                pass
 
-    @pytest.mark.asyncio
-    async def test_file_replacement_triggers_update(self, mock_bar, tmp_path):
+    async def test_file_replacement_triggers_update(self, mock_bar, tmp_path, run_module):
         """Test that replacing a file (move/rename) triggers an update."""
         watch_file = tmp_path / "watched.txt"
         watch_file.write_text("original")
@@ -118,8 +87,7 @@ class TestWatch:
         }
         module = Watch(mock_bar, config)
 
-        task = asyncio.create_task(module.run())
-        try:
+        async with run_module(module):
             # Wait for initial update
             await asyncio.wait_for(mock_bar.update_event.wait(), timeout=1.0)
             assert module.block["full_text"] == "original"
@@ -136,15 +104,8 @@ class TestWatch:
             await asyncio.wait_for(mock_bar.update_event.wait(), timeout=1.0)
 
             assert module.block["full_text"] == "replaced content"
-        finally:
-            task.cancel()
-            try:
-                await task
-            except asyncio.CancelledError:
-                pass
 
-    @pytest.mark.asyncio
-    async def test_custom_format(self, mock_bar, tmp_file):
+    async def test_custom_format(self, mock_bar, tmp_file, run_module):
         """Test that custom format string is applied."""
         tmp_file.write_text("value")
         config = {
@@ -154,20 +115,12 @@ class TestWatch:
         }
         module = Watch(mock_bar, config)
 
-        task = asyncio.create_task(module.run())
-        try:
+        async with run_module(module):
             await asyncio.wait_for(mock_bar.update_event.wait(), timeout=1.0)
-        finally:
-            task.cancel()
-            try:
-                await task
-            except asyncio.CancelledError:
-                pass
 
         assert module.block["full_text"] == "Status: value"
 
-    @pytest.mark.asyncio
-    async def test_strip_whitespace(self, mock_bar, tmp_file):
+    async def test_strip_whitespace(self, mock_bar, tmp_file, run_module):
         """Test that whitespace is stripped by default."""
         tmp_file.write_text("  content with spaces  \n")
         config = {
@@ -176,20 +129,12 @@ class TestWatch:
         }
         module = Watch(mock_bar, config)
 
-        task = asyncio.create_task(module.run())
-        try:
+        async with run_module(module):
             await asyncio.wait_for(mock_bar.update_event.wait(), timeout=1.0)
-        finally:
-            task.cancel()
-            try:
-                await task
-            except asyncio.CancelledError:
-                pass
 
         assert module.block["full_text"] == "content with spaces"
 
-    @pytest.mark.asyncio
-    async def test_no_strip_whitespace(self, mock_bar, tmp_file):
+    async def test_no_strip_whitespace(self, mock_bar, tmp_file, run_module):
         """Test that whitespace is preserved when strip=False."""
         tmp_file.write_text("  spaces  ")
         config = {
@@ -199,20 +144,12 @@ class TestWatch:
         }
         module = Watch(mock_bar, config)
 
-        task = asyncio.create_task(module.run())
-        try:
+        async with run_module(module):
             await asyncio.wait_for(mock_bar.update_event.wait(), timeout=1.0)
-        finally:
-            task.cancel()
-            try:
-                await task
-            except asyncio.CancelledError:
-                pass
 
         assert module.block["full_text"] == "  spaces  "
 
-    @pytest.mark.asyncio
-    async def test_polling_fallback(self, mock_bar, tmp_file):
+    async def test_polling_fallback(self, mock_bar, tmp_file, run_module):
         """Test that polling mode works as fallback."""
         tmp_file.write_text("poll content")
         config = {
@@ -222,8 +159,7 @@ class TestWatch:
         }
         module = Watch(mock_bar, config)
 
-        task = asyncio.create_task(module.run())
-        try:
+        async with run_module(module):
             # Wait for initial update
             await asyncio.wait_for(mock_bar.update_event.wait(), timeout=1.0)
             mock_bar.update_event.clear()
@@ -235,15 +171,8 @@ class TestWatch:
             await asyncio.wait_for(mock_bar.update_event.wait(), timeout=0.5)
 
             assert module.block["full_text"] == "polled update"
-        finally:
-            task.cancel()
-            try:
-                await task
-            except asyncio.CancelledError:
-                pass
 
-    @pytest.mark.asyncio
-    async def test_missing_file_shows_error(self, mock_bar, tmp_path):
+    async def test_missing_file_shows_error(self, mock_bar, tmp_path, run_module):
         """Test that missing file shows an error message."""
         missing_file = tmp_path / "nonexistent.txt"
         config = {
@@ -252,15 +181,8 @@ class TestWatch:
         }
         module = Watch(mock_bar, config)
 
-        task = asyncio.create_task(module.run())
-        try:
+        async with run_module(module):
             await asyncio.wait_for(mock_bar.update_event.wait(), timeout=1.0)
-        finally:
-            task.cancel()
-            try:
-                await task
-            except asyncio.CancelledError:
-                pass
 
         assert "Failed to read" in module.block["full_text"]
         assert "nonexistent.txt" in module.block["full_text"]
@@ -268,14 +190,6 @@ class TestWatch:
 
 class TestWatchRelativeTime:
     """Tests for Watch module relative_time functionality."""
-
-    @pytest.fixture
-    def mock_bar(self):
-        """Provide a mock bar for testing."""
-        bar = MagicMock()
-        bar.notify_update = MagicMock()
-        bar.update_event = asyncio.Event()
-        return bar
 
     @pytest.fixture
     def watch_module(self, mock_bar, tmp_path):
@@ -463,21 +377,18 @@ class TestWatchRelativeTime:
 
     # Integration tests
 
-    @pytest.mark.asyncio
     async def test_on_wake_refreshes_display(self, watch_module, mock_bar):
         """Test that on_wake() refreshes the display."""
         # Initial state
         watch_module.do_update()
-        initial_block = watch_module.block.copy()
 
         # Simulate wake
         await watch_module.on_wake()
 
         # Block should be updated (notify_update called)
-        mock_bar.notify_update.assert_called()
+        assert mock_bar.update_event.is_set()
 
-    @pytest.mark.asyncio
-    async def test_relative_time_display(self, mock_bar, tmp_path):
+    async def test_relative_time_display(self, mock_bar, tmp_path, run_module):
         """Test full relative time display in watch module."""
         now = datetime.now()
         past = now - timedelta(hours=5)
@@ -493,15 +404,8 @@ class TestWatchRelativeTime:
         }
         module = Watch(mock_bar, config)
 
-        task = asyncio.create_task(module.run())
-        try:
+        async with run_module(module):
             await asyncio.sleep(0.1)
-        finally:
-            task.cancel()
-            try:
-                await task
-            except asyncio.CancelledError:
-                pass
 
         assert "T-5h" in module.block["full_text"]
         assert "Backup" in module.block["full_text"]
