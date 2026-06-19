@@ -98,7 +98,8 @@ class Bar:
             def on_prepare_for_sleep(start):
                 if not start:  # Waking up
                     for mod in self.modules:
-                        asyncio.create_task(mod.on_wake())
+                        if mod.config.get("on_wake", True):
+                            asyncio.create_task(mod.on_wake())
 
             manager.on_prepare_for_sleep(on_prepare_for_sleep)
             await asyncio.Future()  # Run forever
