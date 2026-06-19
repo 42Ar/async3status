@@ -122,8 +122,7 @@ class Battery(Module):
                 await asyncio.sleep(0.1)
 
         if not success:
-            self.block = {"name": "battery", "full_text": "FAILED TO CONNECT TO ACPID", "markup": "pango"}
-            self.update()
+            self.update("FAILED TO CONNECT TO ACPID")
             return
 
         # Main loop: event-driven with fallback periodic refresh

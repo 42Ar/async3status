@@ -19,7 +19,8 @@ class Bar:
         for mconf in cfg["modules"]:
             module_class = load_module(mconf["type"])
             if module_class is None:
-                module = static.Static(self, {"text": f"Unable to find module '{mconf['type']}'"})
+                from modules.static import Static
+                module = Static(self, {"text": f"Unable to find module '{mconf['type']}'"})
                 name = mconf["type"]
             else:
                 module = module_class(self, mconf)

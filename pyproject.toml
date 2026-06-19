@@ -10,7 +10,7 @@ license = { file = "LICENSE" }
 requires-python = ">=3.8"
 dependencies = [
     "PyYAML>=6.0",
-    "pulsectl>=23.11.1"
+    "pulsectl>=23.11.1",
     "asyncinotify"
 ]
 
