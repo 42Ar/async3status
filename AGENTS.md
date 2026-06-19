@@ -34,6 +34,15 @@ Unix socket at `$XDG_RUNTIME_DIR/async3status.sock` (default `/run/user/1000/asy
 
 Command format: `module <module_name> <args>`
 
-## No Tests or Linting
+## Testing
 
-No test suite, linter, or CI configured.
+```bash
+pip install -e ".[dev]"
+pytest
+```
+
+Tests use real inotify (no mocking). Add `await asyncio.sleep(0.05)` after initial setup before modifying files to ensure watchers are ready.
+
+## Linting
+
+No linter or CI configured.

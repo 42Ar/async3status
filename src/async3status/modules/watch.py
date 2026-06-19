@@ -56,7 +56,7 @@ class Watch(Module):
         async for event in watcher:
             if event.mask & asyncinotify.Mask.MODIFY:
                 self.do_update()  # file modified
-            elif event.name and event.name == self.path.name and self.path.is_file():
+            elif event.name and str(event.name) == self.path.name and self.path.is_file():
                 # file created or moved
                 self.do_update()
                 try:
