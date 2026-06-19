@@ -9,4 +9,4 @@ def load_module(name):
     if spec is None:
         return None
     mod = importlib.import_module(pymodule)
-    return getattr(mod, name.capitalize())
+    return getattr(mod, name.capitalize(), None)

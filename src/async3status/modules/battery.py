@@ -135,22 +135,23 @@ class Battery(Module):
             self.update("FAILED TO CONNECT TO ACPID")
             return
 
+        async def wait_for_battery_event(timeout):
+            try:
+                while timeout > 0:
+                    start = time.time()
+                    data = await asyncio.wait_for(reader.read(1024), timeout=timeout)
+                    timeout -= time.time() - start
+                    if b"battery" in data:
+                        return True
+                return False
+            except asyncio.TimeoutError:
+                return False
+
         # Main loop: event-driven with fallback periodic refresh
         first = True
         cur_state = ""
         has_send_notify = False
         while True:
-            async def wait_for_battery_event(timeout):
-                try:
-                    while timeout > 0:
-                        start = time.time()
-                        data = await asyncio.wait_for(reader.read(1024), timeout=timeout)
-                        timeout -= time.time() - start
-                        if b"battery" in data:
-                            return True
-                    return False
-                except asyncio.TimeoutError:
-                    return False
             if not first:
                 timeout = self.refresh
                 while await wait_for_battery_event(timeout):

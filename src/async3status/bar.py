@@ -58,12 +58,17 @@ class Bar:
                 return
             parts = line.decode().strip().split(None, 2)
             if len(parts) != 3 or parts[0] != "module":
-                writer.write(b"error: 'module <module_name> [args]'\n")
+                writer.write(b"error: usage: module <module_name> <command>\n")
                 await writer.drain()
                 return
             for mod in self.modules:
                 if mod.name == parts[1]:
                     await mod.handle_ipc(parts[2])
+                    writer.write(b"ok\n")
+                    await writer.drain()
+                    return
+            writer.write(f"error: module '{parts[1]}' not found\n".encode())
+            await writer.drain()
         finally:
             writer.close()
             await writer.wait_closed()

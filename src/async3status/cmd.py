@@ -25,7 +25,19 @@ def main():
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         sock.connect(socket_path)
         sock.sendall((command + "\n").encode())
-        sock.close()
+        sock.shutdown(socket.SHUT_WR)
+
+        # Read response with timeout
+        sock.settimeout(1.0)
+        try:
+            response = sock.recv(1024).decode().strip()
+            if response.startswith("error:"):
+                print(response, file=sys.stderr)
+                sys.exit(1)
+        except socket.timeout:
+            pass  # No response within timeout is OK
+        finally:
+            sock.close()
     except FileNotFoundError:
         print(f"Error: Socket not found at {socket_path}", file=sys.stderr)
         print("Is async3status running?", file=sys.stderr)

@@ -101,3 +101,134 @@ class TestWakeListenerDBusError:
         # Check that an error module was added
         assert len(bar.modules) == 1
         assert "ConnectionRefusedError" in bar.modules[0].block.get("full_text", "")
+
+
+class TestIPC:
+    """Tests for IPC command handling."""
+
+    @pytest.fixture
+    def bar_with_socket(self, tmp_path):
+        """Create a minimal Bar instance with a test socket path."""
+        from async3status.modules.static import Static
+
+        with patch.object(Bar, '__init__', lambda self, path: None):
+            bar = Bar.__new__(Bar)
+            bar.modules = []
+            bar.update_event = asyncio.Event()
+            bar.socket_path = str(tmp_path / "test.sock")
+
+        # Add a test module
+        module = Static(bar, {"type": "static", "name": "testmod", "text": "test"})
+        bar.modules.append(module)
+
+        return bar
+
+    async def test_ipc_valid_command(self, bar_with_socket):
+        """Test that valid IPC command returns 'ok' response."""
+        bar = bar_with_socket
+
+        # Start the IPC server
+        server_task = asyncio.create_task(bar.ipc_server())
+        await asyncio.sleep(0.05)  # Let server start
+
+        try:
+            # Connect and send valid command
+            reader, writer = await asyncio.open_unix_connection(bar.socket_path)
+            writer.write(b"module testmod update\n")
+            await writer.drain()
+            writer.write_eof()
+
+            # Read response
+            response = await asyncio.wait_for(reader.read(1024), timeout=1.0)
+            assert response == b"ok\n"
+
+            writer.close()
+            await writer.wait_closed()
+        finally:
+            server_task.cancel()
+            try:
+                await server_task
+            except asyncio.CancelledError:
+                pass
+
+    async def test_ipc_invalid_format(self, bar_with_socket):
+        """Test that malformed command returns error."""
+        bar = bar_with_socket
+
+        # Start the IPC server
+        server_task = asyncio.create_task(bar.ipc_server())
+        await asyncio.sleep(0.05)
+
+        try:
+            reader, writer = await asyncio.open_unix_connection(bar.socket_path)
+            writer.write(b"invalid command\n")
+            await writer.drain()
+            writer.write_eof()
+
+            response = await asyncio.wait_for(reader.read(1024), timeout=1.0)
+            assert response.startswith(b"error:")
+            assert b"usage:" in response
+
+            writer.close()
+            await writer.wait_closed()
+        finally:
+            server_task.cancel()
+            try:
+                await server_task
+            except asyncio.CancelledError:
+                pass
+
+    async def test_ipc_module_not_found(self, bar_with_socket):
+        """Test that command to nonexistent module returns error."""
+        bar = bar_with_socket
+
+        # Start the IPC server
+        server_task = asyncio.create_task(bar.ipc_server())
+        await asyncio.sleep(0.05)
+
+        try:
+            reader, writer = await asyncio.open_unix_connection(bar.socket_path)
+            writer.write(b"module nonexistent update\n")
+            await writer.drain()
+            writer.write_eof()
+
+            response = await asyncio.wait_for(reader.read(1024), timeout=1.0)
+            assert response.startswith(b"error:")
+            assert b"nonexistent" in response
+            assert b"not found" in response
+
+            writer.close()
+            await writer.wait_closed()
+        finally:
+            server_task.cancel()
+            try:
+                await server_task
+            except asyncio.CancelledError:
+                pass
+
+    async def test_ipc_empty_line(self, bar_with_socket):
+        """Test that empty line is handled gracefully."""
+        bar = bar_with_socket
+
+        # Start the IPC server
+        server_task = asyncio.create_task(bar.ipc_server())
+        await asyncio.sleep(0.05)
+
+        try:
+            reader, writer = await asyncio.open_unix_connection(bar.socket_path)
+            writer.write(b"\n")
+            await writer.drain()
+            writer.write_eof()
+
+            # Should get error response for empty/malformed command
+            response = await asyncio.wait_for(reader.read(1024), timeout=1.0)
+            assert response.startswith(b"error:")
+
+            writer.close()
+            await writer.wait_closed()
+        finally:
+            server_task.cancel()
+            try:
+                await server_task
+            except asyncio.CancelledError:
+                pass
