@@ -20,7 +20,7 @@ class Bar:
             module_class = load_module(mconf["type"])
             if module_class is None:
                 from modules.static import Static
-                module = Static(self, {"text": f"Unable to find module '{mconf['type']}'"})
+                module = Static(self, {"type": "static", "text": f"Unable to find module '{mconf['type']}'"})
             else:
                 module = module_class(self, mconf)
             self.modules.append(module)

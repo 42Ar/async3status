@@ -101,20 +101,6 @@ class Watch(Module):
 
         return self.TIMESTAMP_PATTERN.sub(replacer, content)
 
-    def get_bucket_seconds(self, total_seconds):
-        """Get the bucket size in seconds for a given time difference."""
-        total_seconds = abs(total_seconds)
-        if total_seconds < 60:
-            return 60  # Seconds bucket, changes every minute
-        elif total_seconds < 3600:
-            return 60  # Minutes bucket, changes every minute
-        elif total_seconds < 86400:
-            return 3600  # Hours bucket, changes every hour
-        elif total_seconds < 86400 * 7:
-            return 86400  # Days bucket, changes every day
-        else:
-            return 86400 * 7  # Weeks bucket, changes every week
-
     def seconds_until_bucket_change(self, dt):
         """Calculate seconds until the relative time display will change."""
         now = datetime.now()
