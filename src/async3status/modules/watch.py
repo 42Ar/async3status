@@ -172,16 +172,51 @@ class Watch(Module):
 
         self.update(self.format.format(content))
 
-    async def watch_file(self):
+    def _next_timeout(self):
+        """Seconds until the next timer-driven update, or None for none.
+
+        Merges the relative-time bucket boundary with the optional refresh
+        poll interval. Recomputed every loop iteration so newly arrived
+        timestamps immediately reschedule the bucket timer.
+        """
+        timeout = None
+        if self.relative_time:
+            bucket = self.next_bucket_change()
+            if bucket is not None:
+                # +1s buffer to land past the boundary, capped at 1 hour
+                timeout = min(bucket + 1, 3600)
+        if self.refresh is not None:
+            timeout = self.refresh if timeout is None else min(timeout, self.refresh)
+        return timeout
+
+    async def on_wake(self):
+        """Refresh display after waking from suspend."""
+        self.do_update()
+
+    async def run(self):
+        self.do_update()
+
         watcher = asyncinotify.Inotify()
         if self.path.is_file():
             watcher.add_watch(self.path, asyncinotify.Mask.MODIFY)
         if self.path.parent.is_dir():
             watcher.add_watch(
                 self.path.parent,
-                asyncinotify.Mask.CREATE | asyncinotify.Mask.MOVED_TO
+                asyncinotify.Mask.CREATE | asyncinotify.Mask.MOVED_TO,
             )
-        async for event in watcher:
+
+        while True:
+            timeout = self._next_timeout()
+            try:
+                if timeout is None:
+                    event = await watcher.get()
+                else:
+                    event = await asyncio.wait_for(watcher.get(), timeout)
+            except asyncio.TimeoutError:
+                # Bucket boundary or refresh interval reached.
+                self.do_update()
+                continue
+
             if event.mask & asyncinotify.Mask.MODIFY:
                 self.do_update()  # file modified
             elif event.name and str(event.name) == self.path.name and self.path.is_file():
@@ -191,36 +226,3 @@ class Watch(Module):
                     watcher.add_watch(self.path, asyncinotify.Mask.MODIFY)
                 except Exception:
                     pass
-
-    async def poll_file(self):
-        while self.refresh is not None:
-            await asyncio.sleep(self.refresh)
-            self.do_update()
-
-    async def relative_time_updater(self):
-        """Periodically update display when relative time buckets change."""
-        while self.relative_time:
-            sleep_time = self.next_bucket_change()
-            if sleep_time is None:
-                # No timestamps found, check again in 1 hour
-                sleep_time = 3600
-            else:
-                # Add 1 second buffer to ensure we're past the boundary
-                # Cap at 1 hour to handle edge cases
-                sleep_time = min(sleep_time + 1, 3600)
-
-            await asyncio.sleep(sleep_time)
-            self.do_update()
-
-    async def on_wake(self):
-        """Refresh display after waking from suspend."""
-        self.do_update()
-
-    async def run(self):
-        self.do_update()
-        tasks = [asyncio.create_task(self.watch_file())]
-        if self.refresh is not None:
-            tasks.append(asyncio.create_task(self.poll_file()))
-        if self.relative_time:
-            tasks.append(asyncio.create_task(self.relative_time_updater()))
-        await asyncio.gather(*tasks)

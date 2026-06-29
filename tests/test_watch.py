@@ -409,3 +409,47 @@ class TestWatchRelativeTime:
 
         assert "T-5h" in module.block["full_text"]
         assert "Backup" in module.block["full_text"]
+
+    async def test_new_timestamp_reschedules_bucket_timer(self, mock_bar, tmp_path, run_module):
+        """Regression: a new timestamp from a file event must reschedule the
+        bucket timer.
+
+        Previously the bucket-change updater ran as a separate task and slept
+        on a duration computed from the old content. A newly arrived timestamp
+        did not recompute that sleep, so the relative display stayed stale.
+        With the single unified loop, the next timeout is recomputed every
+        iteration, so a fresh file event must reschedule it.
+        """
+        now = datetime.now()
+        # Start with a timestamp ~58 minutes old: bucket changes in ~2 minutes,
+        # so the old design would sleep ~2 minutes before any timer update.
+        old = now - timedelta(minutes=58)
+        old_iso = old.strftime("%Y-%m-%dT%H:%M:%S")
+
+        tmp_file = tmp_path / "status.txt"
+        tmp_file.write_text(f"Backup {old_iso}")
+
+        config = {
+            "type": "watch",
+            "path": str(tmp_file),
+            "relative_time": True,
+        }
+        module = Watch(mock_bar, config)
+
+        async with run_module(module):
+            await asyncio.wait_for(mock_bar.update_event.wait(), timeout=1.0)
+            assert "T-58m" in module.block["full_text"]
+            mock_bar.update_event.clear()
+
+            # Let the watcher arm, then deliver a brand-new timestamp.
+            await asyncio.sleep(0.05)
+            fresh = datetime.now()
+            fresh_iso = fresh.strftime("%Y-%m-%dT%H:%M:%S")
+            tmp_file.write_text(f"Backup {fresh_iso}")
+
+            # The file event must promptly update the display to the new value.
+            await asyncio.wait_for(mock_bar.update_event.wait(), timeout=1.0)
+
+        assert "T-0m" in module.block["full_text"]
+        # The new bucket timeout is now ~60s; recomputed from fresh content.
+        assert module._next_timeout() <= 61
