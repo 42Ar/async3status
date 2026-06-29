@@ -166,6 +166,48 @@ Notification pause state indicator.
 
 Update via IPC: `async3cmd module dunst update`
 
+### syncthing
+
+Overall Syncthing sync state and aggregate completion, driven by the
+Syncthing long-poll Event API (waits for changes, no busy polling).
+
+| Option              | Default                 | Description                                   |
+|---------------------|-------------------------|-----------------------------------------------|
+| `address`           | `http://127.0.0.1:8384` | Syncthing GUI/API base URL                    |
+| `apikey_command`    | (none)                  | Command whose stdout is the API key           |
+| `apikey`            | (none)                  | API key in plaintext (use `apikey_command`)   |
+| `timeout`           | `60`                    | Event long-poll timeout (seconds)             |
+| `format`            | `{icon} {pct}`          | Format with `{icon}`, `{state}`, `{pct}`, `{need}` |
+| `show_percentage`   | `true`                  | Show the overall completion percentage        |
+| `idle_icon`         | `🔄`                    | Icon when idle                                |
+| `syncing_icon`      | `🔁`                    | Icon when syncing                             |
+| `scanning_icon`     | `🔍`                    | Icon when scanning                            |
+| `error_icon`        | `⚠`                     | Icon on error                                 |
+| `disconnected_icon` | `❌`                    | Icon when Syncthing is unreachable            |
+| `text_color`        | (theme default)         | Pango color for the overall status text       |
+| `error_color`       | `red`                   | Pango color on error                          |
+| `disconnected_color`| `#aaaaaa`               | Pango color when disconnected                 |
+| `per_device`        | `false`                 | Append per-device status after overall status |
+| `devices`           | (all)                   | List of device names/ids to show (filter)     |
+| `device_format`     | `{icon}{name} {pct}`    | Per-device format (`{icon}`, `{name}`, `{pct}`, `{type}`, `{last_seen}`, `{state}`) |
+| `device_separator`  | ` `                     | String joining device entries                 |
+| `device_connected_icon`    | `●`              | Icon for a connected device                   |
+| `device_disconnected_icon` | `○`              | Icon for a disconnected device                |
+| `device_paused_icon`       | `⏸`              | Icon for a paused device                      |
+| `connected_color`   | `#3cc63c`               | Pango color for connected devices             |
+| `show_device_percentage` | `true`             | `true`/`false`, or `incomplete` (hide at 100%) |
+| `last_seen_format`  | `%Y-%m-%dT%H:%M`        | strftime format for `{last_seen}`             |
+| `type_labels`       | tcp/relay/quic          | Map connection-type base to a short label     |
+
+The API key is kept out of the config: `apikey_command` is run and its stdout
+is used as the `X-API-Key` header, e.g. `apikey_command: "pass show syncthing/apikey"`.
+
+With `per_device: true` the module appends every configured remote device with
+a connection icon, connection type (`{type}`), completion percentage, and the
+last-seen time (`{last_seen}`). Disconnected devices show only the icon and name.
+
+Force a refresh via IPC: `async3cmd module syncthing update`
+
 ### static
 
 Displays static text.
