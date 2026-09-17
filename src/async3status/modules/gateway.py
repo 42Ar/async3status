@@ -12,10 +12,17 @@ class Gateway(Module):
     modules:
       - type: gateway
         refresh: 5
+        known_gateways:
+          - "wlp0s20f3"
+          - "eth0"
+        unknown_color: "red"
     """
 
     async def run(self):
-        refresh = self.config.get("refresh", 5)
+        cfg = self.config
+        refresh = cfg.get("refresh", 5)
+        known_gateways = cfg.get("known_gateways", [])
+        unknown_color = cfg.get("unknown_color", "red")
 
         async def get_gateway():
             try:
@@ -27,11 +34,13 @@ class Gateway(Module):
                 )
                 out, _ = await proc.communicate()
                 # Example output: b'8.8.8.8 via 192.168.1.1 dev eth0 src 192.168.1.100 uid 1000\n'
-                # We split by spaces and take the 5th the Element after dev
                 splitted = out.split()
                 devi = splitted.index(b"dev")
-                gw = splitted[devi + 1].decode("utf-8")
-                return f"G: {gw}"
+                iface = splitted[devi + 1].decode("utf-8")
+                gw = splitted[2].decode("utf-8")
+                if known_gateways and iface not in known_gateways:
+                    return f"G: <span foreground='{unknown_color}'>{iface}</span>"
+                return f"G: {iface}"
             except Exception:
                 return "G: ?"
 
