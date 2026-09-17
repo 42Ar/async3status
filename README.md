@@ -151,9 +151,11 @@ Relative time format: `T-0m` (< 1 min), `T-5m` (minutes), `T-3h` (hours), `T-2d`
 
 Shows the default network gateway interface.
 
-| Option    | Default | Description              |
-|-----------|---------|--------------------------|
-| `refresh` | `5`     | Refresh interval (seconds) |
+| Option             | Default | Description                                      |
+|--------------------|---------|--------------------------------------------------|
+| `refresh`          | `5`     | Refresh interval (seconds)                       |
+| `known_gateways`   | `[]`    | List of known interface names (e.g. `["wlp0s20f3"]`) |
+| `unknown_color`    | `red`   | Pango color when interface is not in known_gateways |
 
 ### dunst
 
