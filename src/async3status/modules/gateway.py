@@ -39,7 +39,7 @@ class Gateway(Module):
                 iface = splitted[devi + 1].decode("utf-8")
                 gw = splitted[2].decode("utf-8")
                 if known_gateways and iface not in known_gateways:
-                    return f"G: <span foreground='{unknown_color}'>{iface}</span>"
+                    return f"<span foreground='{unknown_color}'>G: {iface}</span>"
                 return f"G: {iface}"
             except Exception:
                 return "G: ?"
