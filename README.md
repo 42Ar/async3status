@@ -95,6 +95,7 @@ Battery monitoring with ACPI event support.
 | `battery_path`      | `/sys/class/power_supply/BAT0`       | Path to battery sysfs directory     |
 | `refresh`           | `60`                                 | Fallback refresh interval (seconds) |
 | `background_red_on` | `10`                                 | Show red background below this %    |
+| `background_red_color` | `#CC0000`                          | Color of the low-battery background |
 | `background_blink_interval` | `1`                          | Blink red background interval (seconds), `0` disables |
 | `display_current`   | `false`                              | Show current draw in amps           |
 | `icon_plug`         | `🔌`                                 | Icon when charging                  |

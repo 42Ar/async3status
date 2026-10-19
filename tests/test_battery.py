@@ -32,40 +32,47 @@ class TestBattery:
     async def test_no_red_background_above_threshold(self, battery_module, battery_dir):
         (battery_dir / "capacity").write_text("50")
         text = await battery_module.do_check()
-        assert "background='red'" not in text
+        assert "background='#CC0000'" not in text
+        assert "foreground='#FFCC00'" in text
         assert "50%" in text
 
     async def test_red_background_at_or_below_threshold(self, battery_module, battery_dir):
         (battery_dir / "capacity").write_text("10")
         text = await battery_module.do_check()
-        assert "background='red'" in text
+        assert "background='#CC0000'" in text
+        assert "foreground='#FFFFFF'" in text
         assert battery_module._blink_active is True
 
     async def test_no_red_background_when_charging(self, battery_module, battery_dir):
         (battery_dir / "status").write_text("Charging")
         (battery_dir / "capacity").write_text("5")
         text = await battery_module.do_check()
-        assert "background='red'" not in text
+        assert "background='#CC0000'" not in text
+        assert "foreground='#FFFFFF'" in text
         assert battery_module._blink_active is False
 
     async def test_blink_toggles_red_background(self, battery_module, battery_dir):
         (battery_dir / "capacity").write_text("5")
 
-        # Entering the red state starts with the background visible
+        # Entering the red state starts with the background visible and white text
         text = await battery_module.do_check()
-        assert "background='red'" in text
+        assert "background='#CC0000'" in text
+        assert "foreground='#FFFFFF'" in text
         assert battery_module._blink_visible is True
 
-        # Simulate the main loop toggling after each update
+        # Simulate the main loop toggling after each update: background hidden,
+        # text falls back to the default gradient color
         battery_module._blink_visible = not battery_module._blink_visible
         text = await battery_module.do_check()
-        assert "background='red'" not in text
+        assert "background='#CC0000'" not in text
+        assert "foreground='#FF0000'" in text
         assert battery_module._blink_active is True
 
-        # Toggle back: red returns
+        # Toggle back: red returns with white text
         battery_module._blink_visible = not battery_module._blink_visible
         text = await battery_module.do_check()
-        assert "background='red'" in text
+        assert "background='#CC0000'" in text
+        assert "foreground='#FFFFFF'" in text
 
     async def test_blink_disabled_with_zero_interval(self, mock_bar, battery_dir):
         config = {
@@ -77,11 +84,25 @@ class TestBattery:
         (battery_dir / "capacity").write_text("5")
 
         text = await module.do_check()
-        assert "background='red'" in text
+        assert "background='#CC0000'" in text
+        assert "foreground='#FFFFFF'" in text
         assert module._blink_active is False
 
         # Blink state is reset to visible; background stays solid
         module._blink_visible = not module._blink_visible
         text = await module.do_check()
-        assert "background='red'" in text
+        assert "background='#CC0000'" in text
         assert module._blink_visible is True
+
+    async def test_custom_background_red_color(self, mock_bar, battery_dir):
+        config = {
+            "type": "battery",
+            "battery_path": str(battery_dir),
+            "background_red_color": "#990000",
+        }
+        module = Battery(mock_bar, config)
+        (battery_dir / "capacity").write_text("5")
+
+        text = await module.do_check()
+        assert "background='#990000'" in text
+        assert "background='#CC0000'" not in text

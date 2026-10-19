@@ -16,6 +16,7 @@ class Battery(Module):
         battery_path: "/sys/class/power_supply/BAT0"
         refresh: 60
         background_red_on: 10
+        background_red_color: "#CC0000"
         background_blink_interval: 1
         display_current: false
         text_colors:
@@ -36,6 +37,7 @@ class Battery(Module):
         self.battery_path = cfg.get("battery_path", "/sys/class/power_supply/BAT0")
         self.refresh = cfg.get("refresh", 60)
         self.background_red_on = cfg.get("background_red_on", 10)
+        self.background_red_color = cfg.get("background_red_color", "#CC0000")
         self.background_blink_interval = cfg.get("background_blink_interval", 1)
         self.icon_plug = cfg.get("icon_plug", "🔌")
         self.icon_battery = cfg.get("icon_battery", "🔋")
@@ -64,7 +66,7 @@ class Battery(Module):
             return ""
 
     def get_text_color(self, percent, discharging):
-        if percent <= self.background_red_on or not discharging:
+        if not discharging:
             return "#FFFFFF"
         for threshold in [10, 20, 30, 40, 50, 60, 70, 80, 90]:
             if percent <= threshold:
@@ -84,13 +86,15 @@ class Battery(Module):
         except Exception:
             percentleft = 0
 
-        text = f"{icon} <span foreground='{self.get_text_color(percentleft, discharging)}'>{percentleft}%</span>"
         red = percentleft <= self.background_red_on and discharging
         self._blink_active = red and self.background_blink_interval > 0
         if not self._blink_active:
             self._blink_visible = True
-        if red and (not self._blink_active or self._blink_visible):
-            text = f"<span background='red'>{text}</span>"
+        show_red = red and (not self._blink_active or self._blink_visible)
+        color = "#FFFFFF" if show_red else self.get_text_color(percentleft, discharging)
+        text = f"{icon} <span foreground='{color}'>{percentleft}%</span>"
+        if show_red:
+            text = f"<span background='{self.background_red_color}'>{text}</span>"
 
         if self.display_current:
             try:
