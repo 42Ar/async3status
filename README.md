@@ -88,16 +88,14 @@ The refresh interval is automatically determined from the format (e.g., `%S` = e
 
 ### battery
 
-Battery monitoring with ACPI event support, notifications, and power management.
+Battery monitoring with ACPI event support.
 
 | Option              | Default                              | Description                         |
 |---------------------|--------------------------------------|-------------------------------------|
 | `battery_path`      | `/sys/class/power_supply/BAT0`       | Path to battery sysfs directory     |
 | `refresh`           | `60`                                 | Fallback refresh interval (seconds) |
 | `background_red_on` | `10`                                 | Show red background below this %    |
-| `throttle_on`       | `10`                                 | Enable power throttling below this %|
 | `display_current`   | `false`                              | Show current draw in amps           |
-| `send_notify_on`    | `10`                                 | Send notification below this %      |
 | `icon_plug`         | `🔌`                                 | Icon when charging                  |
 | `icon_battery`      | `🔋`                                 | Icon when discharging               |
 | `text_colors`       | (gradient)                           | Colors by battery percentage        |

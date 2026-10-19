@@ -16,13 +16,7 @@ class Battery(Module):
         battery_path: "/sys/class/power_supply/BAT0"
         refresh: 60
         background_red_on: 10
-        throttle_on: 10
-        throttle_state: "power"
-        charge_state: "normal"
-        normal_state: "normal"
         display_current: false
-        send_notify_on: 10
-        notification_icon: "/usr/share/icons/gnome/24x24/status/battery-low.png"
         text_colors:
           color_10: "#FF0000"
           color_20: "#FF3300"
@@ -41,19 +35,10 @@ class Battery(Module):
         self.battery_path = cfg.get("battery_path", "/sys/class/power_supply/BAT0")
         self.refresh = cfg.get("refresh", 60)
         self.background_red_on = cfg.get("background_red_on", 10)
-        self.throttle_on = cfg.get("throttle_on", 10)
-        self.throttle_state = cfg.get("throttle_state", "power")
-        self.charge_state = cfg.get("charge_state", "normal")
-        self.normal_state = cfg.get("normal_state", "normal")
         self.icon_plug = cfg.get("icon_plug", "🔌")
         self.icon_battery = cfg.get("icon_battery", "🔋")
         self.icon_unknown = cfg.get("icon_unknown", "?")
         self.display_current = cfg.get("display_current", False)
-        self.send_notify_on = cfg.get("send_notify_on", 10)
-        self.notification_icon = cfg.get(
-            "notification_icon",
-            "/usr/share/icons/gnome/24x24/status/battery-low.png"
-        )
         self.colors = cfg.get("text_colors", {
             "color_10": "#FF0000",
             "color_20": "#FF3300",
@@ -106,7 +91,7 @@ class Battery(Module):
                     text += f", {current/1e6:.2f}A"
             except Exception:
                 pass
-        return percentleft, discharging, state, text
+        return text
 
     async def run_command(self, *args):
         proc = await asyncio.create_subprocess_exec(*args)
@@ -114,8 +99,7 @@ class Battery(Module):
 
     async def on_wake(self):
         """Refresh battery state immediately after waking from suspend."""
-        _, _, _, text = await self.do_check()
-        self.update(text)
+        self.update(await self.do_check())
 
     async def run(self):
         # Start acpid
@@ -149,8 +133,6 @@ class Battery(Module):
 
         # Main loop: event-driven with fallback periodic refresh
         first = True
-        cur_state = ""
-        has_send_notify = False
         while True:
             if not first:
                 timeout = self.refresh
@@ -159,30 +141,4 @@ class Battery(Module):
             first = False
 
             # Update text
-            percentleft, discharging, state, text = await self.do_check()
-            self.update(text)
-
-            # Handle performance throttling
-            if discharging:
-                if percentleft <= self.throttle_on and cur_state != self.throttle_state:
-                    await self.run_command("sudo", "x86_energy_perf_policy", "-all", self.throttle_state)
-                    cur_state = self.throttle_state
-                elif percentleft > self.throttle_on and cur_state != self.normal_state:
-                    await self.run_command("sudo", "x86_energy_perf_policy", "-all", self.normal_state)
-                    cur_state = self.normal_state
-            elif cur_state != self.charge_state:
-                await self.run_command("sudo", "x86_energy_perf_policy", "-all", self.charge_state)
-                cur_state = self.charge_state
-
-            # Notifications
-            if percentleft > self.send_notify_on or not discharging:
-                has_send_notify = False
-            elif percentleft <= self.send_notify_on and discharging and not has_send_notify:
-                await self.run_command(
-                    "notify-send",
-                    "-i", self.notification_icon,
-                    "-a", "SYS",
-                    "-u", "critical",
-                    f"BAT < {self.send_notify_on}%"
-                )
-                has_send_notify = True
+            self.update(await self.do_check())
