@@ -16,6 +16,7 @@ class Battery(Module):
         battery_path: "/sys/class/power_supply/BAT0"
         refresh: 60
         background_red_on: 10
+        background_blink_interval: 1
         display_current: false
         text_colors:
           color_10: "#FF0000"
@@ -35,6 +36,7 @@ class Battery(Module):
         self.battery_path = cfg.get("battery_path", "/sys/class/power_supply/BAT0")
         self.refresh = cfg.get("refresh", 60)
         self.background_red_on = cfg.get("background_red_on", 10)
+        self.background_blink_interval = cfg.get("background_blink_interval", 1)
         self.icon_plug = cfg.get("icon_plug", "🔌")
         self.icon_battery = cfg.get("icon_battery", "🔋")
         self.icon_unknown = cfg.get("icon_unknown", "?")
@@ -51,6 +53,8 @@ class Battery(Module):
             "color_90": "#FFFFFF",
             "color_100": "#FFFFFF"
         })
+        self._blink_active = False
+        self._blink_visible = True
 
     def read(self, node):
         try:
@@ -81,7 +85,11 @@ class Battery(Module):
             percentleft = 0
 
         text = f"{icon} <span foreground='{self.get_text_color(percentleft, discharging)}'>{percentleft}%</span>"
-        if percentleft <= self.background_red_on and discharging:
+        red = percentleft <= self.background_red_on and discharging
+        self._blink_active = red and self.background_blink_interval > 0
+        if not self._blink_active:
+            self._blink_visible = True
+        if red and (not self._blink_active or self._blink_visible):
             text = f"<span background='red'>{text}</span>"
 
         if self.display_current:
@@ -99,6 +107,7 @@ class Battery(Module):
 
     async def on_wake(self):
         """Refresh battery state immediately after waking from suspend."""
+        self._blink_visible = True
         self.update(await self.do_check())
 
     async def run(self):
@@ -135,10 +144,12 @@ class Battery(Module):
         first = True
         while True:
             if not first:
-                timeout = self.refresh
+                timeout = self.background_blink_interval if self._blink_active else self.refresh
                 while await wait_for_battery_event(timeout):
                     timeout = 1  # debounce if multiple events come in close succession
             first = False
 
             # Update text
             self.update(await self.do_check())
+            if self._blink_active:
+                self._blink_visible = not self._blink_visible
